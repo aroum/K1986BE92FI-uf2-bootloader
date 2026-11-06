@@ -1,0 +1,35 @@
+name: Build UF2 bootloader
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Arm toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-arm-none-eabi libnewlib-arm-none-eabi make
+      - name: Build bootloader
+        run: make
+      - name: Run host tests
+        run: make test
+      - name: Upload bootloader
+        uses: actions/upload-artifact@v4
+        with:
+          name: uf2-bootloader
+          path: |
+            build/k1986ve92fi_uf2_bootloader.bin
+            build/k1986ve92fi_uf2_bootloader.elf
+            build/k1986ve92fi_uf2_bootloader.map
+          if-no-files-found: error
+          retention-days: 3

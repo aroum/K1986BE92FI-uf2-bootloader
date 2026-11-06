@@ -1,0 +1,7 @@
+.DS_Store
+/build/
+/tests/test_host
+/tests/test_host.dSYM/
+/tests/out/
+__pycache__/
+*.pyc
