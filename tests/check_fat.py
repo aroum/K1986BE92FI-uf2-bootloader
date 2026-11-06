@@ -77,7 +77,7 @@ for i in range(n):
     m0, m1, flags, addr, pay, bno, nb, fam = struct.unpack_from("<8I", cur, i * 512)
     mend = struct.unpack_from("<I", cur, i * 512 + 508)[0]
     ok = (m0, m1, mend) == (0x0A324655, 0x9E5D5157, 0x0AB16F30) and bno == i and nb == n \
-        and pay == 256 and addr == 0x08004000 + i * 256 and flags & 0x2000 and fam == 0xE47E1D64
+        and pay == 256 and addr == 0x08003000 + i * 256 and flags & 0x2000 and fam == 0xE47E1D64
     if not ok:
         check(False, f"UF2 block {i} header"); break
 else:
