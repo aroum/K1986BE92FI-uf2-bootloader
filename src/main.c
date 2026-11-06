@@ -172,13 +172,42 @@ static void fatal_blink(void)
     for (;;) { led_set(true); delay_loops(200000); led_set(false); delay_loops(200000); }
 }
 
+/* Последние 16 байт ОЗУ зарезервированы и в приложении, и в загрузчике.
+ * Как в Baikal, сохраняем метку на время окна повторного сброса. */
+#define DOUBLE_RESET_ADDR  0x20007FF0u
+#define DOUBLE_RESET_MAGIC 0xF01669EFu
+#define DOUBLE_RESET_MS    500u
+
+static bool double_reset_check(bool wait_for_second)
+{
+    volatile uint32_t *marker = (volatile uint32_t *)DOUBLE_RESET_ADDR;
+    bool second = (*marker == DOUBLE_RESET_MAGIC);
+    *marker = 0;
+    if (!wait_for_second || second) return second;
+
+    *marker = DOUBLE_RESET_MAGIC;
+    __DSB();
+    /* После SystemInit ядро работает от HSI 8 МГц; прерывания не нужны. */
+    SysTick->LOAD = 8000u - 1u;
+    SysTick->VAL = 0;
+    SysTick->CTRL = SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk;
+    for (uint32_t ms = 0; ms < DOUBLE_RESET_MS; ms++)
+        while (!(SysTick->CTRL & SysTick_CTRL_COUNTFLAG_Msk)) { }
+    SysTick->CTRL = 0;
+    *marker = 0;
+    __DSB();
+    return false;
+}
+
 int main(void)
 {
     bool requested = bl_take_request() != 0;       /* читаем и сразу гасим */
     gpio_init_button();
     bool btn = button_pressed();
 
-    if (!btn && !requested && app_state_is_bootable()) {
+    bool can_boot = !btn && !requested && app_state_is_bootable();
+    bool double_reset = double_reset_check(can_boot);
+    if (can_boot && !double_reset) {
         jump_to_app();
     }
 
