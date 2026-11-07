@@ -71,6 +71,8 @@ jobs:
             build/k1986ve92fi_uf2_bootloader.bin
             build/k1986ve92fi_uf2_bootloader.hex
             build/k1986ve92fi_uf2_bootloader.elf
+          if-no-files-found: error
+          retention-days: 3
 
       - name: Upload Blink Example Artifacts (Windows Make)
         uses: actions/upload-artifact@v4
@@ -81,3 +83,5 @@ jobs:
             example_blink/build/blink.hex
             example_blink/build/blink.elf
             example_blink/build/blink.uf2
+          if-no-files-found: error
+          retention-days: 3
