@@ -78,11 +78,27 @@ void scsi_parse(const uint8_t cdb[16], scsi_cmd_t *o)
         break;
 
     case 0x12: /* INQUIRY */
+        if (cdb[1] & 1) {
+            /* EVPD (Vital Product Data) request */
+            if (cdb[2] == 0x00) {
+                /* Supported VPD Pages (page 0x00) */
+                memset(resp, 0, 5);
+                resp[0] = 0x00;           /* direct-access */
+                resp[1] = 0x00;           /* page code 0x00 */
+                resp[3] = 1;              /* page length */
+                resp[4] = 0x00;           /* supported page: 0x00 */
+                o->kind = SCSI_DATA_IN; o->resp_len = 5;
+                break;
+            }
+            scsi_set_sense(SK_ILLEGAL_REQUEST, 0x24, 0x00); /* invalid field in CDB */
+            o->ok = false;
+            break;
+        }
         memset(resp, 0, 36);
         resp[0] = 0x00;           /* direct-access */
         resp[1] = 0x80;           /* removable */
-        resp[2] = 0x02;
-        resp[3] = 0x02;
+        resp[2] = 0x02;           /* ANSI SCSI-2 */
+        resp[3] = 0x02;           /* response data format */
         resp[4] = 31;
         memcpy(&resp[8],  "Milandr ", 8);
         memcpy(&resp[16], "K1986VE92FI UF2 ", 16);
@@ -94,6 +110,12 @@ void scsi_parse(const uint8_t cdb[16], scsi_cmd_t *o)
         memset(resp, 0, 4);
         resp[0] = 3;
         o->kind = SCSI_DATA_IN; o->resp_len = 4;
+        break;
+
+    case 0x5A: /* MODE SENSE(10) */
+        memset(resp, 0, 8);
+        resp[1] = 6;
+        o->kind = SCSI_DATA_IN; o->resp_len = 8;
         break;
 
     case 0x23: /* READ FORMAT CAPACITIES */

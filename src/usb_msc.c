@@ -17,8 +17,14 @@
 #define ADDR_OUT 0x01u
 #define ADDR_IN  0x82u
 
-#define EP_CTRL_RESET (USB_SEPx_CTRL_EPEN_Enable | USB_SEPx_CTRL_EPDATASEQ_Data0 | \
-                       USB_SEPx_CTRL_EPRDY_NotReady | USB_SEPx_CTRL_EPSSTALL_NotReply)
+/* Для OUT-точки начальная фаза данных — DATA0.
+ * Для IN-точки SPL функция USB_EP_doDataIn безусловно переключает бит (TOGGLE)
+ * перед первой передачей, поэтому регистр должен быть инициализирован с DATA1,
+ * чтобы первое отправляемое сообщение имело фазу DATA0 (см. реализацию CDC в SPL). */
+#define EP_OUT_CTRL_RESET (USB_SEPx_CTRL_EPEN_Enable | USB_SEPx_CTRL_EPDATASEQ_Data0 | \
+                           USB_SEPx_CTRL_EPRDY_NotReady | USB_SEPx_CTRL_EPSSTALL_NotReply)
+#define EP_IN_CTRL_RESET  (USB_SEPx_CTRL_EPEN_Enable | USB_SEPx_CTRL_EPDATASEQ_Data1 | \
+                           USB_SEPx_CTRL_EPRDY_NotReady | USB_SEPx_CTRL_EPSSTALL_NotReply)
 
 /* ---- события ISR -> main ------------------------------------------------ */
 #define EVT_BUS_RESET  (1u << 0)
@@ -106,7 +112,10 @@ static USB_Result on_set_address(USB_EP_TypeDef EPx, uint8_t *buf, uint32_t len)
     return USB_SUCCESS;
 }
 
-static void ep_clear_halt(USB_EP_TypeDef ep) { USB_EP_Init(ep, EP_CTRL_RESET, 0); }
+static void ep_clear_halt(USB_EP_TypeDef ep)
+{
+    USB_EP_Init(ep, (ep == EP_IN) ? EP_IN_CTRL_RESET : EP_OUT_CTRL_RESET, 0);
+}
 
 USB_Result USBMSC_SetupPacket(USB_EP_TypeDef EPx, const USB_SetupPacket_TypeDef *p)
 {
@@ -161,8 +170,8 @@ USB_Result USBMSC_SetupPacket(USB_EP_TypeDef EPx, const USB_SetupPacket_TypeDef 
         case 9: /* SET_CONFIGURATION */
             if (p->wValue > 1) return USB_ERROR;
             if (p->wValue == 1) {
-                USB_EP_Init(EP_OUT, EP_CTRL_RESET, 0);
-                USB_EP_Init(EP_IN,  EP_CTRL_RESET, 0);
+                USB_EP_Init(EP_OUT, EP_OUT_CTRL_RESET, 0);
+                USB_EP_Init(EP_IN,  EP_IN_CTRL_RESET,  0);
                 halt_in = halt_out = false;
                 USB_DeviceContext.USB_DeviceState = USB_DEV_STATE_CONFIGURED;
                 configured = true;
@@ -308,7 +317,9 @@ static void handle_cbw(void)
     memcpy(&dlen, &cbw_buf[8], 4);
     uint8_t flags = cbw_buf[12], lun = cbw_buf[13] & 0x0F, cb_len = cbw_buf[14] & 0x1F;
 
-    if (cbw_rx_len != 31 || sig != 0x43425355u || lun != 0 || cb_len < 1 || cb_len > 16) {
+    /* CBW по спецификации BOT имеет длину 31 байт, но Full-Speed контроллер
+     * может отдавать 31 или 64 байта в зависимости от округления FIFO. */
+    if ((cbw_rx_len != 31 && cbw_rx_len != 64) || sig != 0x43425355u || lun != 0 || cb_len < 1 || cb_len > 16) {
         /* Недопустимый CBW: застолить обе EP до Reset Recovery. */
         uint32_t pm = __get_PRIMASK(); __disable_irq();
         halt_in = halt_out = true;
@@ -368,8 +379,8 @@ static void handle_cbw(void)
 static void bot_restart(void)
 {
     halt_in = halt_out = false;
-    USB_EP_Init(EP_OUT, EP_CTRL_RESET, 0);
-    USB_EP_Init(EP_IN,  EP_CTRL_RESET, 0);
+    USB_EP_Init(EP_OUT, EP_OUT_CTRL_RESET, 0);
+    USB_EP_Init(EP_IN,  EP_IN_CTRL_RESET,  0);
     arm_cbw();
 }
 

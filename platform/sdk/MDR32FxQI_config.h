@@ -289,7 +289,7 @@ extern "C" {
 
 /* Uncomment the line below to let the library provide USB interrupt handler.
  * Leave this line commented if you are willing to implement the handler yourself. */
-#define USB_INT_HANDLE_REQUIRED
+// #define USB_INT_HANDLE_REQUIRED
 
 /* USB CDC management */
 /* Uncomment the lines below to enable appropriate functionality. */

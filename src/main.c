@@ -144,11 +144,22 @@ static void usb_start(void)
     bus.PULL  = USB_HSCR_DP_PULLUP_Set;
 
     USB_DeviceInit(&clk, &bus);
-    USB_SetSIM(USB_SIS_Msk);
+    /* Разрешаем прерывания только по передаче пакетов (SCTDONE) и сбросу шины (SCRESETEV).
+     * Флаги SOF (SCSOFREC) и NAK (SCNAKSENT) не используются стеком, но штормят прерываниями. */
+    USB_SetSIM(USB_SIM_SCTDONEIE_Set | USB_SIM_SCRESETEVIE_Set |
+               USB_SIM_SCSOFRECIE_Reset | USB_SIM_SCNAKSENTIE_Reset | USB_SIM_SCRESUMEIE_Reset);
     USB_DevicePowerOn();
     NVIC_SetPriority(USB_IRQn, 1);
     NVIC_EnableIRQ(USB_IRQn);
     USB_DeviceReset();
+}
+
+void USB_IRQHandler(void)
+{
+    NVIC_DisableIRQ(USB_IRQn);
+    USB_DeviceDispatchEvent();
+    MDR_USB->SIS = USB_SIS_SCTDONE;
+    NVIC_EnableIRQ(USB_IRQn);
 }
 
 /* ---- Переход в приложение --------------------------------------------------- */
