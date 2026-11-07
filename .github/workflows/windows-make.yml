@@ -1,0 +1,83 @@
+name: Windows Make Build
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows-make:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Arm GNU Toolchain
+        uses: carlosperate/arm-none-eabi-gcc-action@v1
+        with:
+          release: '13.2.Rel1'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install Make
+        run: |
+          choco install make --no-progress
+
+      - name: Verify toolchain versions
+        run: |
+          arm-none-eabi-gcc --version
+          make --version
+          python --version
+
+      - name: Build Bootloader (Make)
+        run: |
+          make clean
+          make bootloader
+
+      - name: Check bootloader size (must fit 12 KB limit)
+        run: |
+          arm-none-eabi-size build/k1986ve92fi_uf2_bootloader.elf
+          size=$(wc -c < build/k1986ve92fi_uf2_bootloader.bin)
+          echo "bootloader.bin = $size bytes (limit 12288)"
+          test "$size" -le 12288
+
+      - name: Build Blink Example (Make)
+        run: |
+          make -C example_blink clean
+          make -C example_blink
+
+      - name: Verify artifacts
+        run: |
+          ls -la build/k1986ve92fi_uf2_bootloader.*
+          ls -la example_blink/build/blink.*
+
+      - name: Upload Bootloader Artifacts (Windows Make)
+        uses: actions/upload-artifact@v4
+        with:
+          name: bootloader-windows-make
+          path: |
+            build/k1986ve92fi_uf2_bootloader.bin
+            build/k1986ve92fi_uf2_bootloader.hex
+            build/k1986ve92fi_uf2_bootloader.elf
+
+      - name: Upload Blink Example Artifacts (Windows Make)
+        uses: actions/upload-artifact@v4
+        with:
+          name: blink-example-windows-make
+          path: |
+            example_blink/build/blink.bin
+            example_blink/build/blink.hex
+            example_blink/build/blink.elf
+            example_blink/build/blink.uf2

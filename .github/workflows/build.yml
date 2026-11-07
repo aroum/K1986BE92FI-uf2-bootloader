@@ -1,4 +1,4 @@
-name: Build UF2 bootloader
+name: Build UF2 bootloader & blink example
 
 on:
   push:
@@ -14,22 +14,50 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - name: Install Arm toolchain
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Arm toolchain & dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y gcc-arm-none-eabi libnewlib-arm-none-eabi make
+          sudo apt-get install -y gcc-arm-none-eabi libnewlib-arm-none-eabi make python3
+
       - name: Build bootloader
-        run: make
+        run: make bootloader
+
+      - name: Build blink example
+        run: make blink
+
       - name: Run host tests
         run: make test
-      - name: Upload bootloader
+
+      - name: Check bootloader size (must fit 12 KB limit)
+        run: |
+          arm-none-eabi-size build/k1986ve92fi_uf2_bootloader.elf
+          size=$(wc -c < build/k1986ve92fi_uf2_bootloader.bin)
+          echo "bootloader.bin = $size bytes (limit 12288)"
+          test "$size" -le 12288
+
+      - name: Upload Bootloader Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: uf2-bootloader
           path: |
             build/k1986ve92fi_uf2_bootloader.bin
+            build/k1986ve92fi_uf2_bootloader.hex
             build/k1986ve92fi_uf2_bootloader.elf
             build/k1986ve92fi_uf2_bootloader.map
+          if-no-files-found: error
+          retention-days: 3
+
+      - name: Upload Blink Example Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: blink-example
+          path: |
+            example_blink/build/blink.bin
+            example_blink/build/blink.hex
+            example_blink/build/blink.elf
+            example_blink/build/blink.uf2
           if-no-files-found: error
           retention-days: 3

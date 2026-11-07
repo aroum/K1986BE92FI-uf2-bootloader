@@ -36,6 +36,16 @@ LDFLAGS = $(MCU) $(OPT) -nostartfiles --specs=nano.specs -Tbootloader.ld \
   -Wl,-Map=$(BUILD_DIR)/$(TARGET).map -Wl,--gc-sections -Wl,--print-memory-usage \
   -Wl,--no-warn-rwx-segments
 
+# Cross-platform helpers for directory creation and removal
+ifneq ($(findstring sh,$(SHELL)),)
+  MKDIR = mkdir -p $(1)
+  RMDIR = rm -rf $(1)
+else
+  FIX_PATH = $(subst /,\,$(1))
+  MKDIR = if not exist "$(call FIX_PATH,$(1))" mkdir "$(call FIX_PATH,$(1))"
+  RMDIR = if exist "$(call FIX_PATH,$(1))" rmdir /s /q "$(call FIX_PATH,$(1))"
+endif
+
 OBJS = $(addprefix $(BUILD_DIR)/,$(notdir $(C_SOURCES:.c=.o))) \
        $(addprefix $(BUILD_DIR)/,$(notdir $(ASM_S:.s=.o))) \
        $(addprefix $(BUILD_DIR)/,$(notdir $(ASM_BIG:.S=.o)))
@@ -43,8 +53,13 @@ vpath %.c $(sort $(dir $(C_SOURCES)))
 vpath %.s $(sort $(dir $(ASM_S)))
 vpath %.S $(sort $(dir $(ASM_BIG)))
 
-all: $(BUILD_DIR)/$(TARGET).bin
+all: bootloader
+
+bootloader: $(BUILD_DIR)/$(TARGET).bin $(BUILD_DIR)/$(TARGET).hex
 	@$(SIZE) $(BUILD_DIR)/$(TARGET).elf
+
+blink:
+	$(MAKE) -C example_blink
 
 $(BUILD_DIR)/%.o: %.c | $(BUILD_DIR)
 	$(CC) -c $(CFLAGS) $< -o $@
@@ -57,17 +72,22 @@ $(BUILD_DIR)/$(TARGET).elf: $(OBJS) bootloader.ld
 	$(CC) $(OBJS) $(LDFLAGS) -o $@
 $(BUILD_DIR)/$(TARGET).bin: $(BUILD_DIR)/$(TARGET).elf
 	$(OBJCOPY) -O binary $< $@
+$(BUILD_DIR)/$(TARGET).hex: $(BUILD_DIR)/$(TARGET).elf
+	$(OBJCOPY) -O ihex $< $@
 
 $(BUILD_DIR):
-	mkdir -p $@
+	@$(call MKDIR,$(BUILD_DIR))
 
 # Хост-тесты логики FAT/UF2/SCSI (без железа)
 test:
 	$(MAKE) -C tests run
 
 clean:
-	rm -rf $(BUILD_DIR)
+	@$(call RMDIR,$(BUILD_DIR))
 	$(MAKE) -C tests clean
 
+clean-all: clean
+	$(MAKE) -C example_blink clean
+
 -include $(wildcard $(BUILD_DIR)/*.d)
-.PHONY: all test clean
+.PHONY: all bootloader blink test clean clean-all
