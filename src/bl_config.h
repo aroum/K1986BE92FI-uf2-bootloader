@@ -9,11 +9,11 @@
 #define BL_FLASH_BASE       0x08000000u
 #define BL_FLASH_SIZE       0x00020000u
 #define BL_PAGE_SIZE        0x00001000u
-#define BL_CODE_SIZE        0x00002000u                    /* код загрузчика: 8 КБ (2 страницы) */
+#define BL_CODE_SIZE        0x00003000u                    /* код загрузчика: 12 КБ (3 страницы) */
 #define BL_STATE_ADDR       (BL_FLASH_BASE + BL_CODE_SIZE) /* 1 страница: маркер валидности приложения */
-#define BL_APP_START        (BL_STATE_ADDR + BL_PAGE_SIZE) /* 0x08003000 */
+#define BL_APP_START        (BL_STATE_ADDR + BL_PAGE_SIZE) /* 0x08004000 */
 #define BL_FLASH_END        (BL_FLASH_BASE + BL_FLASH_SIZE)
-#define BL_APP_SIZE         (BL_FLASH_END - BL_APP_START)  /* 116 КБ */
+#define BL_APP_SIZE         (BL_FLASH_END - BL_APP_START)  /* 112 КБ */
 
 #define BL_RAM_BASE         0x20000000u
 #define BL_RAM_SIZE         0x00008000u

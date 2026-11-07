@@ -74,7 +74,7 @@ static const char info_txt[] =
     "Model: K1986VE92FI\r\n"
     "Board-ID: K1986VE92FI-v1\r\n"
     "Family-ID: 0xE47E1D64\r\n"
-    "App-Start: 0x08003000\r\n";
+    "App-Start: 0x08004000\r\n";
 
 typedef struct {
     const char *name;           /* 11 символов, 8.3 без точки */

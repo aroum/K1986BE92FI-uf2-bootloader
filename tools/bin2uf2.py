@@ -4,14 +4,14 @@
   arm-none-eabi-objcopy -O binary app.elf app.bin
   python3 tools/bin2uf2.py app.bin -o app.uf2
 
-Образ должен быть слинкован на 0x08003000 (см. README).
+Образ должен быть слинкован на 0x08004000 (см. README).
 """
 import argparse, struct, sys
 
 MAGIC0, MAGIC1, MAGIC_END = 0x0A324655, 0x9E5D5157, 0x0AB16F30
 FLAG_FAMILY = 0x00002000
 FAMILY_ID = 0xE47E1D64
-APP_START, APP_END = 0x08003000, 0x08020000
+APP_START, APP_END = 0x08004000, 0x08020000
 
 
 def convert(data: bytes, base: int, family: int, payload: int) -> bytes:
