@@ -53,10 +53,13 @@ vpath %.c $(sort $(dir $(C_SOURCES)))
 vpath %.s $(sort $(dir $(ASM_S)))
 vpath %.S $(sort $(dir $(ASM_BIG)))
 
-all: bootloader
+all: bootloader updater
 
 bootloader: $(BUILD_DIR)/$(TARGET).bin $(BUILD_DIR)/$(TARGET).hex
 	@$(SIZE) $(BUILD_DIR)/$(TARGET).elf
+
+updater: bootloader
+	$(MAKE) -C updater
 
 blink:
 	$(MAKE) -C example_blink
@@ -88,6 +91,7 @@ clean:
 
 clean-all: clean
 	$(MAKE) -C example_blink clean
+	$(MAKE) -C updater clean
 
 -include $(wildcard $(BUILD_DIR)/*.d)
-.PHONY: all bootloader blink test clean clean-all
+.PHONY: all bootloader updater blink test clean clean-all

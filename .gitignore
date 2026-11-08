@@ -1,5 +1,7 @@
 .DS_Store
 build/
+updater/build/
+example_blink/build/
 /tests/test_host
 /tests/test_host.dSYM/
 /tests/out/

@@ -28,6 +28,9 @@ jobs:
       - name: Build bootloader
         run: make bootloader
 
+      - name: Build bootloader updater (UF2 self-updater)
+        run: make updater
+
       - name: Build blink example
         run: make blink
 
@@ -53,6 +56,18 @@ jobs:
           if-no-files-found: error
           retention-days: 3
 
+      - name: Upload Bootloader Updater Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: bootloader-updater
+          path: |
+            updater/build/bootloader_updater.uf2
+            updater/build/bootloader_updater.bin
+            updater/build/bootloader_updater.hex
+            updater/build/bootloader_updater.elf
+          if-no-files-found: error
+          retention-days: 3
+
       - name: Upload Blink Example Artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -72,6 +87,9 @@ jobs:
           files: |
             build/k1986ve92fi_uf2_bootloader.bin
             build/k1986ve92fi_uf2_bootloader.hex
+            updater/build/bootloader_updater.uf2
+            updater/build/bootloader_updater.bin
+            updater/build/bootloader_updater.hex
             example_blink/build/blink.uf2
             example_blink/build/blink.bin
             example_blink/build/blink.hex
